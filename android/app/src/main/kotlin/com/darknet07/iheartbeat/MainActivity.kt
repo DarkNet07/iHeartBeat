@@ -1,4 +1,4 @@
-package com.example.fitness_tracker_app
+package com.darknet07.iheartbeat
 
 import io.flutter.embedding.android.FlutterActivity
 
