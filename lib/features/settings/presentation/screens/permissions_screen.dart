@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 
-class PermissionsStatuses extends StatefulWidget {
-  const PermissionsStatuses({super.key});
+class PermissionsScreen extends StatefulWidget {
+  const PermissionsScreen({super.key});
 
   @override
   _PermissionsStatusesState createState() => _PermissionsStatusesState();
 }
 
-class _PermissionsStatusesState extends State<PermissionsStatuses> {
+class _PermissionsStatusesState extends State<PermissionsScreen> {
   bool _bluetoothGranted = false;
   bool _locationGranted = false;
   String _statusMessage = 'Проверяем разрешения...';
@@ -88,26 +88,28 @@ class _PermissionsStatusesState extends State<PermissionsStatuses> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text('Проверки доступов bluetooth', maxLines: 2)),
-      body: Padding(
-        padding: EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Статус: $_statusMessage', style: TextStyle(fontSize: 16)),
-            SizedBox(height: 20),
-            Text('Bluetooth разрешен: $_bluetoothGranted'),
-            Text('местоположение разрешено: $_locationGranted'),
-            SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _checkAndRequestPermissions,
-              child: Text('Повторить запрос разрешений'),
-            ),
-            if (!_bluetoothGranted)
+      body: SafeArea(
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Статус: $_statusMessage', style: TextStyle(fontSize: 16)),
+              SizedBox(height: 20),
+              Text('Bluetooth разрешен: $_bluetoothGranted'),
+              Text('местоположение разрешено: $_locationGranted'),
+              SizedBox(height: 20),
               ElevatedButton(
-                onPressed: openAppSettings,
-                child: Text('Открыть настройки приложения'),
+                onPressed: _checkAndRequestPermissions,
+                child: Text('Повторить запрос разрешений'),
               ),
-          ],
+              if (!_bluetoothGranted)
+                ElevatedButton(
+                  onPressed: openAppSettings,
+                  child: Text('Открыть настройки приложения'),
+                ),
+            ],
+          ),
         ),
       ),
     );
