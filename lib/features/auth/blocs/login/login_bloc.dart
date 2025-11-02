@@ -60,20 +60,26 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
     Emitter<LoginState> emit,
   ) async {
     if (!state.isFormValid) {
-      emit(state.copyWith(status: AuthStatus.invalid));
+      emit(state.copyWith(status: LoginStatus.invalid));
       return;
     }
 
-    emit(state.copyWith(status: AuthStatus.loading));
+    emit(state.copyWith(status: LoginStatus.loading));
 
     try {
       final token = await _authService.login(event.email, event.password);
       if (token != null) {
-        emit(state.copyWith(status: AuthStatus.success, globalError: null));
+        emit(
+          state.copyWith(
+            status: LoginStatus.success,
+            globalError: null,
+            token: token,
+          ),
+        );
       } else {
         emit(
           state.copyWith(
-            status: AuthStatus.error,
+            status: LoginStatus.error,
             globalError: 'Неверный email или пароль',
           ),
         );
@@ -81,7 +87,7 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
     } catch (e) {
       emit(
         state.copyWith(
-          status: AuthStatus.error,
+          status: LoginStatus.error,
           globalError: 'Ошибка входа: ${e.toString()}',
         ),
       );
@@ -93,21 +99,21 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
     Emitter<LoginState> emit,
   ) async {
     if (!state.isFormValid) {
-      emit(state.copyWith(status: AuthStatus.invalid));
+      emit(state.copyWith(status: LoginStatus.invalid));
       return;
     }
 
-    emit(state.copyWith(status: AuthStatus.loading));
+    emit(state.copyWith(status: LoginStatus.loading));
 
     try {
       final success = await _authService.signup(event.email, event.password);
       if (success) {
-        emit(state.copyWith(status: AuthStatus.success, globalError: null));
+        emit(state.copyWith(status: LoginStatus.success, globalError: null));
         add(LoginSubmitted(email: event.email, password: event.password));
       } else {
         emit(
           state.copyWith(
-            status: AuthStatus.error,
+            status: LoginStatus.error,
             globalError: 'Пользователь уже существует',
           ),
         );
@@ -115,7 +121,7 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
     } catch (e) {
       emit(
         state.copyWith(
-          status: AuthStatus.error,
+          status: LoginStatus.error,
           globalError: 'Ошибка регистрации: ${e.toString()}',
         ),
       );

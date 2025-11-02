@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:iheartbeat/features/auth/presentation/blocs/login/login_bloc.dart';
+import 'package:iheartbeat/features/auth/blocs/login/login_bloc.dart';
 
 class LoginForm extends StatelessWidget {
   const LoginForm({Key? key}) : super(key: key);
@@ -50,7 +50,7 @@ class LoginForm extends StatelessWidget {
 
                 ElevatedButton(
                   onPressed:
-                      state.status == AuthStatus.loading || !state.isFormValid
+                      state.status == LoginStatus.loading || !state.isFormValid
                       ? null
                       : () {
                           if (state.isLoginMode) {
@@ -69,9 +69,9 @@ class LoginForm extends StatelessWidget {
                             );
                           }
                         },
-                  child: state.status == AuthStatus.loading
+                  child: state.status == LoginStatus.loading
                       ? const CircularProgressIndicator(color: Colors.white)
-                      : Text(state.isLoginMode ? 'Войти' : 'Регистрация',),
+                      : Text(state.isLoginMode ? 'Войти' : 'Регистрация'),
                 ),
                 const SizedBox(height: 16),
 

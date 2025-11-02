@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:iheartbeat/features/auth/presentation/blocs/login/login_bloc.dart';
+import 'package:iheartbeat/core/injection_container.dart' as di;
+import 'package:iheartbeat/core/widgets/back_button_interceptor.dart';
+import 'package:iheartbeat/features/auth/blocs/auth/auth_bloc.dart';
+import 'package:iheartbeat/features/auth/blocs/login/login_bloc.dart';
 import 'package:iheartbeat/features/auth/presentation/widgets/login_form.dart';
 
 class LoginScreen extends StatelessWidget {
@@ -8,73 +11,92 @@ class LoginScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => LoginBloc(),
-      child: Scaffold(
-        backgroundColor: Theme.of(context).colorScheme.background,
-        resizeToAvoidBottomInset: true,
-        body: SafeArea(
-          child: BlocListener<LoginBloc, LoginState>(
-            listener: (context, state) {
-              if (state.status == AuthStatus.success) {
+    return BlocProvider<LoginBloc>(
+      create: (context) => di.sl<LoginBloc>(),
+      child: Builder(
+        builder: (context) {
+          return BlocListener<AuthBloc, AuthState>(
+            listener: (context, authState) {
+              if (authState.status == AuthStatus.authenticated) {
                 Navigator.pushReplacementNamed(context, '/home');
-              } else if (state.status == AuthStatus.error &&
-                  state.globalError != null) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(state.globalError!),
-                    backgroundColor: Colors.red,
-                  ),
-                );
+              } else if (authState.status == AuthStatus.unauthenticated) {
               }
             },
-            child: SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.all(32),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.favorite,
-                          size: 80,
-                          color: Theme.of(context).primaryColor,
-                        ),
-                        const SizedBox(height: 16),
-                        const Text(
-                          'iHeartBeat',
-                          style: TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Мониторинг здоровья и фитнеса',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey[600],
-                          ),
-                        ),
+            child: Scaffold(
+              body: BlocListener<LoginBloc, LoginState>(
+                listener: (context, loginState) {
+                  if (loginState.status == LoginStatus.success &&
+                      loginState.token != null) {
+                    final authBloc = context.read<AuthBloc>();
+                    authBloc.add(LoggedIn(token: loginState.token!));
+                  } else if (loginState.status == LoginStatus.error &&
+                      loginState.globalError != null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(loginState.globalError!),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                },
+                child: BackButtonInterceptor(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(32),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: const [
+                        _Header(),
+                        SizedBox(height: 32),
+                        LoginForm(),
+                        SizedBox(height: 32),
+                        _Footer(),
                       ],
                     ),
-                    const SizedBox(height: 32),
-                    LoginForm(),
-                    const SizedBox(height: 32),
-                    Center(
-                      child: Text(
-                        '© 2025 iHeartBeat',
-                        style: TextStyle(fontSize: 12, color: Colors.grey[500]),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
-          ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _Header extends StatelessWidget {
+  const _Header();
+
+  @override
+  Widget build(BuildContext context) {
+    final primaryColor = Theme.of(context).primaryColor;
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(Icons.favorite, size: 80, color: primaryColor),
+        const SizedBox(height: 16),
+        const Text(
+          'iHeartBeat',
+          style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
         ),
+        const SizedBox(height: 8),
+        Text(
+          'Мониторинг здоровья и фитнеса',
+          style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+        ),
+      ],
+    );
+  }
+}
+
+class _Footer extends StatelessWidget {
+  const _Footer();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Text(
+        '© 2025 iHeartBeat',
+        style: TextStyle(fontSize: 12, color: Colors.grey[500]),
       ),
     );
   }

@@ -1,25 +1,28 @@
 part of 'login_bloc.dart';
 
-enum AuthStatus { initial, loading, success, error, valid, invalid }
+enum LoginStatus { initial, loading, success, error, valid, invalid }
 
 class LoginState extends Equatable {
   const LoginState({
-    this.status = AuthStatus.initial,
+    this.status = LoginStatus.initial,
     this.email = '',
     this.password = '',
     this.emailError,
     this.passwordError,
     this.globalError,
     this.isLoginMode = true,
+    this.token,
   });
 
-  final AuthStatus status;
+  final LoginStatus status;
   final String email;
   final String password;
   final String? emailError;
   final String? passwordError;
   final String? globalError;
   final bool isLoginMode;
+
+  final String? token;
 
   bool get isFormValid => emailError == null && passwordError == null;
 
@@ -33,16 +36,18 @@ class LoginState extends Equatable {
     globalError,
     isLoginMode,
     isFormValid,
+    token,
   ];
 
   LoginState copyWith({
-    AuthStatus? status,
+    LoginStatus? status,
     String? email,
     String? password,
     String? emailError,
     String? passwordError,
     String? globalError,
     bool? isLoginMode,
+    String? token,
   }) {
     return LoginState(
       status: status ?? this.status,
@@ -52,6 +57,7 @@ class LoginState extends Equatable {
       passwordError: passwordError,
       globalError: globalError ?? this.globalError,
       isLoginMode: isLoginMode ?? this.isLoginMode,
+      token: token ?? this.token,
     );
   }
 }

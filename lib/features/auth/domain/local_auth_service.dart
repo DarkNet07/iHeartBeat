@@ -29,20 +29,34 @@ class LocalAuthService {
     return true;
   }
 
+  Future<String?> getToken() async {
+    return await _secureStorage.read(key: _keyToken);
+  }
+
+  Future<void> saveToken(String token) async {
+    await _secureStorage.write(key: _keyToken, value: token);
+  }
+
+  Future<void> logout() async {
+    await _secureStorage.delete(key: _keyToken);
+  }
+
   Future<String?> login(String email, String password) async {
     final prefs = await SharedPreferences.getInstance();
     final storedEmail = prefs.getString(_keyEmail);
     final storedPassword = await _secureStorage.read(key: _keyPassword);
 
     if (storedEmail == email && storedPassword == password) {
-      return await _secureStorage.read(key: _keyToken);
+      final storedToken = await _secureStorage.read(key: _keyToken);
+      if (storedToken != null) {
+        return storedToken;
+      }
+      String newToken = _generateMockJwt(email);
+      await _secureStorage.write(key: _keyToken, value: newToken);
+      return newToken;
     }
 
     return null;
-  }
-
-  Future<void> logout() async {
-    await _secureStorage.delete(key: _keyToken);
   }
 
   Future<bool> isLoggedIn() async {
@@ -59,7 +73,7 @@ class LocalAuthService {
         json.encode({
           'email': email,
           'exp': DateTime.now()
-              .add(const Duration(days: 1))
+              .add(const Duration(days: 3))
               .millisecondsSinceEpoch,
         }),
       ),
