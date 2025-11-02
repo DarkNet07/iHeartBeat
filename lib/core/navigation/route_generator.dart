@@ -6,7 +6,8 @@ import 'package:iheartbeat/features/settings/presentation/screens/permissions_sc
 class RouteGenerator {
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
-      case '/' || '/login':
+      case '/':
+      case '/login':
         return MaterialPageRoute(builder: (_) => const LoginScreen());
 
       case '/home':
@@ -18,7 +19,11 @@ class RouteGenerator {
         return MaterialPageRoute(builder: (_) => const PermissionsScreen());
 
       default:
-        return MaterialPageRoute(builder: (_) => const LoginScreen());
+        return MaterialPageRoute(
+          builder: (_) => Scaffold(
+            body: Center(child: Text('Неизвестный маршрут: ${settings.name}')),
+          ),
+        );
     }
   }
 }
