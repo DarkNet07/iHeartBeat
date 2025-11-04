@@ -101,6 +101,7 @@ class CombinedBluetoothService implements AdvancedBluetoothService {
                   !mockDevices.any((d) => d.id == device.id)) {
                 _realDevices.add(device);
                 _realDevices.sort((a, b) {
+                  // сортировка устройства с возможностью подклюбчения сначала
                   final aIsAvailable = a.connectable.name == 'available';
                   final bIsAvailable = b.connectable.name == 'available';
 
@@ -108,17 +109,12 @@ class CombinedBluetoothService implements AdvancedBluetoothService {
                   if (!aIsAvailable && bIsAvailable) return 1;
                   return 0;
                 });
-                if (device.connectable.name == 'available') {
-                  if (device.name.isNotEmpty) {
-                    log('Real device found: ${device.name}');
-                  }
-                }
                 _scanController.add([...mockDevices, ..._realDevices]);
               }
             }
           },
           onError: (error) {
-            log('Scan error: $error');
+            log('Ошибка при сканировании: $error');
           },
         );
   }
@@ -133,12 +129,10 @@ class CombinedBluetoothService implements AdvancedBluetoothService {
   @override
   Future<void> connect(String deviceId) async {
     if (_connected && _connectedDeviceId == deviceId) {
-      log('Already connected to device: $deviceId');
       return;
     }
 
     if (_connected && _connectedDeviceId != deviceId) {
-      log('Disconnecting from current device before new connection');
       await disconnect();
       await Future.delayed(const Duration(milliseconds: 500));
     }
@@ -182,14 +176,11 @@ class CombinedBluetoothService implements AdvancedBluetoothService {
       _batteryController.add(battery);
       _caloriesController.add(calories);
       _distanceController.add(distance);
-
-      log('Mock Data - HR: $heartRate, Steps: $steps, Battery: $battery%');
     });
   }
 
   Future<void> _connectToRealDevice(String deviceId) async {
     try {
-      log('Connecting to device: $deviceId');
       await _cleanupConnection();
       await Future.delayed(const Duration(milliseconds: 500));
 
@@ -200,36 +191,32 @@ class CombinedBluetoothService implements AdvancedBluetoothService {
           )
           .listen(
             (connectionState) async {
-              log('Connection state: ${connectionState.connectionState}');
               if (connectionState.connectionState ==
                   DeviceConnectionState.connected) {
                 _connected = true;
                 _connectedDeviceId = deviceId;
                 _connectionStatusController.add(true);
-                log('Successfully connected to device: $deviceId');
                 await _discoverServicesAndSubscribe(deviceId);
               } else if (connectionState.connectionState ==
                   DeviceConnectionState.disconnected) {
-                log('Device disconnected');
                 _connectionStatusController.add(false);
                 await _cleanupConnection();
               } else if (connectionState.connectionState ==
                   DeviceConnectionState.connecting) {
-                log('Device connecting...');
               }
             },
             onError: (error) {
-              log('Connection error: $error');
+              log('Ошибка при подключении к реальному устройству: $error');
               _connectionStatusController.add(false);
               _cleanupConnection();
             },
             cancelOnError: true,
           );
     } catch (e) {
-      log('Failed to connect: $e');
+      log('Непредвиденная ошибка при подключении к устройству: $e');
       _connectionStatusController.add(false);
       await _cleanupConnection();
-      throw Exception('Connection failed: $e');
+      throw Exception('Непредвиденная ошибка при подключении к устройству: $e');
     }
   }
 
@@ -261,9 +248,8 @@ class CombinedBluetoothService implements AdvancedBluetoothService {
 
       _characteristicSubscriptions['$serviceUuid-$characteristicUuid'] =
           subscription;
-      log('Successfully subscribed to characteristic: $characteristicUuid');
     } catch (e) {
-      log('Failed to subscribe to characteristic $characteristicUuid: $e');
+      log('Ошибка при подписании на characteristic $characteristicUuid: $e');
     }
   }
 
@@ -283,95 +269,15 @@ class CombinedBluetoothService implements AdvancedBluetoothService {
           characteristicUuid == heartRateMeasurement) {
         final heartRate = _parseHeartRateMeasurement(data);
         _heartRateController.add(heartRate);
-        log('Heart rate: $heartRate bpm');
-      }
-      else if (serviceUuid == batteryService &&
+      } else if (serviceUuid == batteryService &&
           characteristicUuid == batteryLevel) {
         final batteryLevel = data[0];
         _batteryController.add(batteryLevel);
-        log('Battery level: $batteryLevel%');
-      }
-      else if (serviceUuid == xiaomiService) {
-        _parseXiaomiData(data);
-      }
-      else {
+      } else {
         _parseGenericHealthData(serviceUuid, characteristicUuid, data);
       }
     } catch (e) {
-      log('Error processing characteristic data: $e');
-    }
-  }
-
-  void _parseXiaomiData(List<int> data) {
-    try {
-      log(
-        'Xiaomi data: ${data.map((e) => e.toRadixString(16).padLeft(2, '0')).join(':')}',
-      );
-
-      _parseXiaomiStandardFormat(data);
-      _parseXiaomiCustomFormat(data);
-    } catch (e) {
-      log('Error parsing Xiaomi data: $e');
-    }
-  }
-
-  void _parseXiaomiStandardFormat(List<int> data) {
-    if (data.length < 5) return;
-
-    try {
-      int frameControl = (data[1] << 8) | data[0];
-
-      if ((frameControl & 0x1000) != 0 && data.length >= 10) {
-        int batteryLevel = data[9] & 0x7F;
-        if (batteryLevel <= 100) {
-          _batteryController.add(batteryLevel);
-          log('Xiaomi Battery: $batteryLevel%');
-        }
-      }
-
-      if ((frameControl & 0x2000) != 0 && data.length >= 7) {
-        int steps = (data[6] << 8) | data[5];
-        _stepsController.add(steps);
-        log('Xiaomi Steps: $steps');
-      }
-
-      if ((frameControl & 0x4000) != 0 && data.length >= 10) {
-        int heartRate = data[10];
-        if (heartRate >= 40 && heartRate <= 240) {
-          _heartRateController.add(heartRate);
-          log('Xiaomi Heart Rate: $heartRate bpm');
-        }
-      }
-    } catch (e) {
-      log('Error in Xiaomi standard format parsing: $e');
-    }
-  }
-
-  void _parseXiaomiCustomFormat(List<int> data) {
-    try {
-      for (int i = 0; i < data.length - 1; i++) {
-        int value = data[i];
-        if (value >= 40 && value <= 240) {
-          if (i == 0 || data[i - 1] == 0x06 || data[i - 1] == 0x16) {
-            _heartRateController.add(value);
-            log('Xiaomi HR (custom): $value bpm');
-            break;
-          }
-        }
-      }
-
-      for (int i = 0; i < data.length; i++) {
-        int value = data[i];
-        if (value <= 100 && value > 0) {
-          if (i > 0 && (data[i - 1] == 0x0A || data[i - 1] == 0x1A)) {
-            _batteryController.add(value);
-            log('Xiaomi Battery (custom): $value%');
-            break;
-          }
-        }
-      }
-    } catch (e) {
-      log('Error in Xiaomi custom format parsing: $e');
+      log('Ошибка при обработке данных characteristic: $e');
     }
   }
 
@@ -385,7 +291,6 @@ class CombinedBluetoothService implements AdvancedBluetoothService {
         int value = data[0];
         if (value >= 40 && value <= 240) {
           _heartRateController.add(value);
-          log('Generic Heart Rate: $value bpm');
           return;
         }
       }
@@ -394,7 +299,6 @@ class CombinedBluetoothService implements AdvancedBluetoothService {
         int value = data[0];
         if (value <= 100) {
           _batteryController.add(value);
-          log('Generic Battery: $value%');
           return;
         }
       }
@@ -406,11 +310,10 @@ class CombinedBluetoothService implements AdvancedBluetoothService {
         }
         if (steps <= 50000) {
           _stepsController.add(steps);
-          log('Generic Steps: $steps');
         }
       }
     } catch (e) {
-      log('Error parsing generic health data: $e');
+      log('Ошибка при парсинге данных о здоровье: $e');
     }
   }
 
@@ -430,7 +333,7 @@ class CombinedBluetoothService implements AdvancedBluetoothService {
 
       return 0;
     } catch (e) {
-      log('Error parsing heart rate: $e');
+      log('Ошибка при парсинге данных о сердцебиении: $e');
       return 0;
     }
   }
@@ -440,7 +343,7 @@ class CombinedBluetoothService implements AdvancedBluetoothService {
       final services = await _ble.getDiscoveredServices(deviceId);
       await _subscribeToSelectedCharacteristics(deviceId, services);
     } catch (e) {
-      log('Service discovery error: $e');
+      log('Ошибка при получении списка сервисов: $e');
     }
   }
 
@@ -464,12 +367,10 @@ class CombinedBluetoothService implements AdvancedBluetoothService {
             }
           }
         } catch (e) {
-          log('Failed to process characteristic ${characteristic.id}: $e');
+          log('Ошибка при обработке characteristic ${characteristic.id}: $e');
         }
       }
     }
-
-    log('Successfully subscribed to $successfulSubscriptions characteristics');
   }
 
   bool _isHealthCharacteristic(Uuid serviceUuid, Uuid characteristicUuid) {
@@ -480,7 +381,7 @@ class CombinedBluetoothService implements AdvancedBluetoothService {
         characteristicUuid == heartRateMeasurement) {
       return true;
     }
-    if (serviceUuid == xiaomiService) {
+    if (xiaomiServicesUUIDsData.contains(serviceUuid)) {
       return true;
     }
     if (serviceUuid == fitnessMachineService) {
@@ -497,17 +398,14 @@ class CombinedBluetoothService implements AdvancedBluetoothService {
     _connectedDeviceId = null;
     _connectedDeviceName = null;
 
-    log('Starting connection cleanup...');
-
     _mockDataTimer?.cancel();
     _mockDataTimer = null;
 
     for (var entry in _characteristicSubscriptions.entries) {
       try {
         await entry.value.cancel();
-        log('Canceled subscription: ${entry.key}');
       } catch (e) {
-        log('Error canceling characteristic subscription: $e');
+        log('Ошибка при сбросе данных подписки characteristic: $e');
       }
     }
     _characteristicSubscriptions.clear();
@@ -516,26 +414,18 @@ class CombinedBluetoothService implements AdvancedBluetoothService {
       await _connectionSubscription?.cancel();
       _connectionSubscription = null;
     } catch (e) {
-      log('Error canceling connection subscription: $e');
+      log('Ошибка при сбросе подписки: $e');
     }
 
-    if (_heartRateController.hasListener) {
-      _heartRateController.add(0);
-    }
-    if (_stepsController.hasListener) {
-      _stepsController.add(0);
-    }
-    if (_batteryController.hasListener) {
-      _batteryController.add(0);
-    }
-    if (_caloriesController.hasListener) {
-      _caloriesController.add(0);
-    }
-    if (_distanceController.hasListener) {
-      _distanceController.add(0);
-    }
+    if (!_heartRateController.isClosed) _heartRateController.add(0);
+    if (!_stepsController.isClosed) _stepsController.add(0);
+    if (!_batteryController.isClosed) _batteryController.add(0);
+    if (!_caloriesController.isClosed) _caloriesController.add(0);
+    if (!_distanceController.isClosed) _distanceController.add(0);
 
-    log('Connection cleanup completed');
+    if (!_connectionStatusController.isClosed) {
+      _connectionStatusController.add(false);
+    }
   }
 
   @override
@@ -564,7 +454,6 @@ class CombinedBluetoothService implements AdvancedBluetoothService {
 
   @override
   Future<void> disconnect() async {
-    log('Disconnecting from device');
     _connectionStatusController.add(false);
     await _cleanupConnection();
   }
@@ -573,7 +462,7 @@ class CombinedBluetoothService implements AdvancedBluetoothService {
   void dispose() {
     _cleanupConnection();
     _realScanSubscription?.cancel();
-    _scanController.close();
+    _scanController?.close();
     _connectionStatusController.close();
     _heartRateController.close();
     _stepsController.close();

@@ -10,88 +10,105 @@ class DataTab extends StatelessWidget {
     final cubit = context.read<BluetoothCubit>();
 
     return BlocBuilder<BluetoothCubit, BluetoothState>(
+      buildWhen: (previous, current) =>
+          previous.status != current.status ||
+          previous.connectedDevice != current.connectedDevice,
       builder: (context, state) {
         final isConnected = state.status == BluetoothStatus.connected;
+        final deviceName = cubit.state.connectedDevice?.name ?? '';
 
         return Scaffold(
           body: Center(
             child: Padding(
               padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    isConnected
-                        ? Icons.timeline
-                        : Icons.bluetooth_disabled_rounded,
-                    size: 80,
-                    color: isConnected ? Colors.green : Colors.grey,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    isConnected ? 'Данные с устройства' : 'Данные',
-                    style: const TextStyle(fontSize: 24),
-                  ),
-                  const SizedBox(height: 16),
-                  if (isConnected) ...[
-                    StreamBuilder<int>(
-                      stream: cubit.heartRateStream,
-                      builder: (context, snapshot) {
-                        return _buildDataCard(
-                          '❤️ Пульс',
-                          '${snapshot.data ?? 0} уд/мин',
-                        );
-                      },
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      isConnected
+                          ? Icons.timeline
+                          : Icons.bluetooth_disabled_rounded,
+                      size: 80,
+                      color: isConnected ? Colors.green : Colors.grey,
                     ),
-                    const SizedBox(height: 12),
-                    StreamBuilder<int>(
-                      stream: cubit.stepsStream,
-                      builder: (context, snapshot) {
-                        return _buildDataCard(
-                          '👣 Шаги',
-                          '${snapshot.data ?? 0}',
-                        );
-                      },
+                    const SizedBox(height: 16),
+                    Text(
+                      isConnected ? 'Данные с устройства' : 'Данные',
+                      style: const TextStyle(fontSize: 24),
                     ),
-                    const SizedBox(height: 12),
-                    StreamBuilder<int>(
-                      stream: cubit.batteryStream,
-                      builder: (context, snapshot) {
-                        return _buildDataCard(
-                          '🔋 Батарея',
-                          '${snapshot.data ?? 0}%',
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    StreamBuilder<int>(
-                      stream: cubit.caloriesStream,
-                      builder: (context, snapshot) {
-                        return _buildDataCard(
-                          '🔥 Калории',
-                          '${snapshot.data ?? 0} ккал',
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    StreamBuilder<int>(
-                      stream: cubit.distanceStream,
-                      builder: (context, snapshot) {
-                        final distance = snapshot.data ?? 0;
-                        return _buildDataCard(
-                          '📏 Дистанция',
-                          '${(distance / 1000).toStringAsFixed(2)} км',
-                        );
-                      },
-                    ),
-                  ] else ...[
-                    const Text(
-                      'Подключите устройство для отображения данных',
-                      style: TextStyle(fontSize: 16, color: Colors.grey),
-                      textAlign: TextAlign.center,
-                    ),
+                    if (isConnected) ...[
+                      Text(
+                        deviceName.isEmpty
+                            ? 'Неизвестное устройство'
+                            : deviceName,
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 16),
+                    if (isConnected) ...[
+                      StreamBuilder<int>(
+                        stream: cubit.heartRateStream,
+                        builder: (context, snapshot) {
+                          return _buildDataCard(
+                            '❤️ Пульс',
+                            '${snapshot.data ?? 0} уд/мин',
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      StreamBuilder<int>(
+                        stream: cubit.stepsStream,
+                        builder: (context, snapshot) {
+                          return _buildDataCard(
+                            '👣 Шаги',
+                            '${snapshot.data ?? 0}',
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      StreamBuilder<int>(
+                        stream: cubit.batteryStream,
+                        builder: (context, snapshot) {
+                          return _buildDataCard(
+                            '🔋 Батарея',
+                            '${snapshot.data ?? 0}%',
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      StreamBuilder<int>(
+                        stream: cubit.caloriesStream,
+                        builder: (context, snapshot) {
+                          return _buildDataCard(
+                            '🔥 Калории',
+                            '${snapshot.data ?? 0} ккал',
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      StreamBuilder<int>(
+                        stream: cubit.distanceStream,
+                        builder: (context, snapshot) {
+                          final distance = snapshot.data ?? 0;
+                          return _buildDataCard(
+                            '📏 Дистанция',
+                            '${(distance / 1000).toStringAsFixed(2)} км',
+                          );
+                        },
+                      ),
+                    ] else ...[
+                      const Text(
+                        'Подключите устройство для отображения данных',
+                        style: TextStyle(fontSize: 16, color: Colors.grey),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
             ),
           ),

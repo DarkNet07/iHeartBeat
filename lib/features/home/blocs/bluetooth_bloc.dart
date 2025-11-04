@@ -25,26 +25,30 @@ class BluetoothCubit extends Cubit<BluetoothState> {
     _connectionStatusSubscription = _bluetoothService.connectionStatusStream
         .listen(
           (isConnected) {
-            log('Connection status changed: $isConnected');
             if (isConnected) {
               _stopScanningOnly();
-              emit(state.copyWith(status: BluetoothStatus.connected));
-            } else {
               emit(
                 state.copyWith(
-                  status: BluetoothStatus.disconnected,
-                  connectedDevice: null,
-                  connectedDeviceId: null,
+                  status: BluetoothStatus.connected,
+                  errorMessage: null,
                 ),
               );
+            } else {
+              if (state.connectedDevice != null) {
+                emit(
+                  state.copyWith(
+                    connectedDevice: null,
+                    connectedDeviceId: null,
+                  ),
+                );
+              }
             }
           },
           onError: (error) {
-            log('Connection status stream error: $error');
             emit(
               state.copyWith(
                 status: BluetoothStatus.error,
-                errorMessage: 'Connection error: $error',
+                errorMessage: 'Ошибка при подключении к устройству: $error',
               ),
             );
           },
@@ -62,7 +66,6 @@ class BluetoothCubit extends Cubit<BluetoothState> {
 
   void startScan() async {
     if (state.status == BluetoothStatus.connected) {
-      log('Already connected to device, ignoring scan request');
       return;
     }
 
@@ -83,6 +86,8 @@ class BluetoothCubit extends Cubit<BluetoothState> {
       state.copyWith(
         status: BluetoothStatus.scanning,
         scannedDevices: [],
+        connectedDevice: null,
+        connectedDeviceId: null,
         errorMessage: null,
       ),
     );
@@ -121,8 +126,6 @@ class BluetoothCubit extends Cubit<BluetoothState> {
       debugPrint('Connecting to device: ${device.name}');
 
       await _stopScanningOnly();
-
-      await _bluetoothService.connect(deviceId);
       emit(
         state.copyWith(
           status: BluetoothStatus.connecting,
@@ -131,6 +134,8 @@ class BluetoothCubit extends Cubit<BluetoothState> {
           errorMessage: null,
         ),
       );
+
+      await _bluetoothService.connect(deviceId);
     } catch (e) {
       debugPrint('Connection error: ${e.toString()}');
       emit(
@@ -145,6 +150,14 @@ class BluetoothCubit extends Cubit<BluetoothState> {
   void disconnect() async {
     try {
       await _bluetoothService.disconnect();
+      emit(
+        state.copyWith(
+          status: BluetoothStatus.disconnected,
+          connectedDevice: null,
+          connectedDeviceId: null,
+          errorMessage: null,
+        ),
+      );
     } catch (e) {
       emit(
         state.copyWith(
@@ -161,7 +174,7 @@ class BluetoothCubit extends Cubit<BluetoothState> {
     try {
       await _bluetoothService.stopScan();
     } catch (e) {
-      log('Error stopping scan: $e');
+      log('Ошибка при остановке стрима сканирования: $e');
     }
   }
 
@@ -172,25 +185,25 @@ class BluetoothCubit extends Cubit<BluetoothState> {
     }
   }
 
-  void cancelScan() async {
+  void cancelConnecting() async {
     await _bluetoothService.disconnect();
-    if (state.status == BluetoothStatus.connecting) {
-      emit(
-        state.copyWith(
-          status: BluetoothStatus.initial,
-          connectedDevice: null,
-          connectedDeviceId: null,
-        ),
-      );
-    }
+    // emit(
+    //   state.copyWith(
+    //     status: BluetoothStatus.disconnected,
+    //     connectedDevice: null,
+    //     connectedDeviceId: null,
+    //   ),
+    // );
   }
 
   @override
-  Future<void> close() {
+  Future<void> close() async {
     _scanSubscription?.cancel();
     _connectionStatusSubscription?.cancel();
-    _bluetoothService.stopScan();
-    _bluetoothService.disconnect();
+    try {
+      await _bluetoothService.stopScan();
+      _bluetoothService.dispose();
+    } catch (_) {}
     return super.close();
   }
 }

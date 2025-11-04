@@ -29,11 +29,7 @@ class _TabbedHomeScreenState extends State<TabbedHomeScreen> {
 
     _bluetoothCubit = BluetoothCubit(BluetoothServiceFactory.createService());
 
-    _tabs = [
-      const DevicesTab(),
-      const DataTab(),
-      const ProfileTab(),
-    ];
+    _tabs = [const DevicesTab(), const DataTab(), const ProfileTab()];
 
     _bottomNavItems = [
       BottomNavigationBarItem(
@@ -56,6 +52,7 @@ class _TabbedHomeScreenState extends State<TabbedHomeScreen> {
 
   @override
   void dispose() {
+    _bluetoothCubit.disconnect();
     _bluetoothCubit.close();
     super.dispose();
   }
