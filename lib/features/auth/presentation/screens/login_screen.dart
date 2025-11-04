@@ -72,7 +72,7 @@ class _Header extends StatelessWidget {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(Icons.favorite, size: 80, color: primaryColor),
+        Icon(Icons.favorite_rounded, size: 80, color: primaryColor),
         const SizedBox(height: 16),
         const Text(
           'iHeartBeat',

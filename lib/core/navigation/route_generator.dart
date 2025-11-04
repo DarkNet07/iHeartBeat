@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:iheartbeat/features/auth/presentation/screens/login_screen.dart';
+import 'package:iheartbeat/features/auth/presentation/screens/splash_screen.dart';
 import 'package:iheartbeat/features/home/presentation/screens/home_screen.dart';
 import 'package:iheartbeat/features/settings/presentation/screens/permissions_screen.dart';
 
 class RouteGenerator {
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
+      case '/splash':
+        return MaterialPageRoute(builder: (_) => const SplashScreen());
       case '/':
       case '/login':
         return MaterialPageRoute(builder: (_) => const LoginScreen());

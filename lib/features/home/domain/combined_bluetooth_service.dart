@@ -158,6 +158,7 @@ class CombinedBluetoothService implements AdvancedBluetoothService {
   void _startMockData() {
     _mockDataTimer?.cancel();
     int tick = 0;
+    int battery = 100;
     _mockDataTimer = Timer.periodic(const Duration(seconds: 2), (timer) {
       if (!_connected) {
         timer.cancel();
@@ -165,11 +166,15 @@ class CombinedBluetoothService implements AdvancedBluetoothService {
       }
 
       tick++;
+
       final heartRate = 60 + (tick % 40);
       final steps = tick * 3;
-      final battery = 100 - (tick % 100);
       final calories = tick * 2;
       final distance = tick * 10;
+
+      if (tick % 20 == 0 && battery > 0) {
+        battery--;
+      }
 
       _heartRateController.add(heartRate);
       _stepsController.add(steps);
@@ -202,8 +207,7 @@ class CombinedBluetoothService implements AdvancedBluetoothService {
                 _connectionStatusController.add(false);
                 await _cleanupConnection();
               } else if (connectionState.connectionState ==
-                  DeviceConnectionState.connecting) {
-              }
+                  DeviceConnectionState.connecting) {}
             },
             onError: (error) {
               log('Ошибка при подключении к реальному устройству: $error');
@@ -240,7 +244,7 @@ class CombinedBluetoothService implements AdvancedBluetoothService {
             },
             onError: (error) {
               log(
-                'Characteristic subscription error for $characteristicUuid: $error',
+                'Ошибка при подписке на characteristic $characteristicUuid: $error',
               );
             },
             cancelOnError: true,
@@ -261,10 +265,6 @@ class CombinedBluetoothService implements AdvancedBluetoothService {
     if (data.isEmpty) return;
 
     try {
-      log(
-        'Data received from $characteristicUuid: ${data.map((e) => e.toRadixString(16).padLeft(2, '0')).join(':')}',
-      );
-
       if (serviceUuid == heartRateService &&
           characteristicUuid == heartRateMeasurement) {
         final heartRate = _parseHeartRateMeasurement(data);
@@ -351,8 +351,6 @@ class CombinedBluetoothService implements AdvancedBluetoothService {
     String deviceId,
     List<Service> services,
   ) async {
-    int successfulSubscriptions = 0;
-
     for (final service in services) {
       for (final characteristic in service.characteristics) {
         try {
@@ -363,7 +361,6 @@ class CombinedBluetoothService implements AdvancedBluetoothService {
                 service.id,
                 characteristic.id,
               );
-              successfulSubscriptions++;
             }
           }
         } catch (e) {
