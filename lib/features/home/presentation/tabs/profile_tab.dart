@@ -65,7 +65,7 @@ class ProfileTab extends StatelessWidget {
   }
 
   void _navigateToPermissions(BuildContext context) {
-    Navigator.pushNamed(context, 'home/profile/permissions');
+    Navigator.pushNamed(context, '/settings/permissions');
   }
 
   Future<void> _showLogoutDialog(BuildContext context) async {

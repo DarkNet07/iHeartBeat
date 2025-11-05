@@ -19,8 +19,7 @@ class IHeartBeatApp extends StatelessWidget {
     return MultiBlocProvider(
       providers: [
         BlocProvider<AuthBloc>(
-          create: (context) =>
-              di.sl<AuthBloc>()..add(AppStarted()),
+          create: (context) => di.sl<AuthBloc>()..add(AppStarted()),
         ),
       ],
       child: MaterialApp(

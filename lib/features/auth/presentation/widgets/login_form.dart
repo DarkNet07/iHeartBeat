@@ -3,11 +3,19 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:iheartbeat/features/auth/blocs/login/login_bloc.dart';
 
 class LoginForm extends StatelessWidget {
-  const LoginForm({Key? key}) : super(key: key);
+  const LoginForm({super.key});
 
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<LoginBloc, LoginState>(
+      buildWhen: (previous, current) {
+        return previous.email != current.email ||
+            previous.password != current.password ||
+            previous.emailError != current.emailError ||
+            previous.passwordError != current.passwordError ||
+            previous.status != current.status ||
+            previous.isLoginMode != current.isLoginMode;
+      },
       builder: (context, state) {
         return Padding(
           padding: const EdgeInsets.all(16.0),
@@ -16,6 +24,7 @@ class LoginForm extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 TextFormField(
+                  initialValue: state.email,
                   decoration: InputDecoration(
                     labelText: 'Email',
                     prefixIcon: const Icon(Icons.email),
@@ -31,6 +40,8 @@ class LoginForm extends StatelessWidget {
                 const SizedBox(height: 16),
 
                 TextFormField(
+                  initialValue:
+                      state.password,
                   decoration: InputDecoration(
                     labelText: 'Пароль',
                     prefixIcon: const Icon(Icons.lock),

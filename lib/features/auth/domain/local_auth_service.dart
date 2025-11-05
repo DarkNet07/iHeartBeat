@@ -9,36 +9,20 @@ class LocalAuthService {
   static const _keyEmail = 'user_email';
   static const _keyPassword = 'user_password';
   static const _keyToken = 'auth_token';
+  static const _keyPin = 'user_pin';
+  static const _keyBiometricEnabled = 'biometric_enabled';
 
   Future<bool> signup(String email, String password) async {
     final prefs = await SharedPreferences.getInstance();
-
     final existingEmail = prefs.getString(_keyEmail);
-
-    if (existingEmail != null && existingEmail == email) {
-      return false;
-    }
+    if (existingEmail != null && existingEmail == email) return false;
 
     await prefs.setString(_keyEmail, email);
-
     await _secureStorage.write(key: _keyPassword, value: password);
 
-    String token = _generateMockJwt(email);
+    final token = _generateMockJwt(email);
     await _secureStorage.write(key: _keyToken, value: token);
-
     return true;
-  }
-
-  Future<String?> getToken() async {
-    return await _secureStorage.read(key: _keyToken);
-  }
-
-  Future<void> saveToken(String token) async {
-    await _secureStorage.write(key: _keyToken, value: token);
-  }
-
-  Future<void> logout() async {
-    await _secureStorage.delete(key: _keyToken);
   }
 
   Future<String?> login(String email, String password) async {
@@ -48,15 +32,37 @@ class LocalAuthService {
 
     if (storedEmail == email && storedPassword == password) {
       final storedToken = await _secureStorage.read(key: _keyToken);
-      if (storedToken != null) {
-        return storedToken;
-      }
-      String newToken = _generateMockJwt(email);
-      await _secureStorage.write(key: _keyToken, value: newToken);
-      return newToken;
+      return storedToken ?? _generateMockJwt(email);
     }
-
     return null;
+  }
+
+  Future<String?> getToken() async => await _secureStorage.read(key: _keyToken);
+  Future<void> saveToken(String token) async =>
+      await _secureStorage.write(key: _keyToken, value: token);
+  Future<void> logout() async => await _secureStorage.delete(key: _keyToken);
+
+  Future<void> setPin(String pin) async =>
+      await _secureStorage.write(key: _keyPin, value: pin);
+
+  Future<bool> validatePin(String pin) async {
+    final storedPin = await _secureStorage.read(key: _keyPin);
+    return storedPin == pin;
+  }
+
+  Future<bool> hasPin() async {
+    final pin = await _secureStorage.read(key: _keyPin);
+    return pin != null && pin.isNotEmpty;
+  }
+
+  Future<void> enableBiometric(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyBiometricEnabled, enabled);
+  }
+
+  Future<bool> isBiometricEnabled() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_keyBiometricEnabled) ?? false;
   }
 
   Future<bool> isLoggedIn() async {
@@ -78,8 +84,7 @@ class LocalAuthService {
         }),
       ),
     );
-    final signature = 'mock_signature';
-    return '$header.$payload.$signature';
+    return '$header.$payload.mock_signature';
   }
 
   Future<String?> getEmail() async {

@@ -17,6 +17,8 @@ class LoggedIn extends AuthEvent {
 
 class LoggedOut extends AuthEvent {}
 
+class AdditionalAuthRequired extends AuthEvent {}
+
 class AuthErrorOccurred extends AuthEvent {
   const AuthErrorOccurred({required this.message});
   final String message;

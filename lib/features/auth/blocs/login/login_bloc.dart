@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:developer';
 
 import 'package:equatable/equatable.dart';
@@ -10,6 +11,8 @@ part 'login_state.dart';
 
 class LoginBloc extends Bloc<LoginEvent, LoginState> {
   final LocalAuthService _authService;
+  StreamSubscription<String?>? _emailSubscription;
+  StreamSubscription<String?>? _passwordSubscription;
 
   LoginBloc() : _authService = di.authService, super(const LoginState()) {
     on<EmailChanged>(_onEmailChanged);
@@ -17,20 +20,23 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
     on<LoginSubmitted>(_onLoginSubmitted);
     on<SignupSubmitted>(_onSignupSubmitted);
     on<ToggleAuthMode>(_onToggleMode);
+    on<ResetError>(_onResetError);
   }
 
   void _onEmailChanged(EmailChanged event, Emitter<LoginState> emit) {
+    final emailError = _validateEmail(event.email);
     final newState = state.copyWith(
       email: event.email,
-      emailError: _validateEmail(event.email),
+      emailError: emailError,
     );
     emit(newState);
   }
 
   void _onPasswordChanged(PasswordChanged event, Emitter<LoginState> emit) {
+    final passwordError = _validatePassword(event.password);
     final newState = state.copyWith(
       password: event.password,
-      passwordError: _validatePassword(event.password),
+      passwordError: passwordError,
     );
     emit(newState);
   }
@@ -59,28 +65,19 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
     LoginSubmitted event,
     Emitter<LoginState> emit,
   ) async {
-    if (!state.isFormValid) {
-      emit(state.copyWith(status: LoginStatus.invalid));
-      return;
-    }
-
-    emit(state.copyWith(status: LoginStatus.loading));
+    emit(state.copyWith(status: LoginStatus.loading, globalError: null));
 
     try {
       final token = await _authService.login(event.email, event.password);
       if (token != null) {
-        emit(
-          state.copyWith(
-            status: LoginStatus.success,
-            globalError: null,
-            token: token,
-          ),
-        );
+        emit(state.copyWith(status: LoginStatus.success, token: token));
       } else {
         emit(
           state.copyWith(
             status: LoginStatus.error,
             globalError: 'Неверный email или пароль',
+            email: state.email,
+            password: state.password,
           ),
         );
       }
@@ -89,6 +86,8 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
         state.copyWith(
           status: LoginStatus.error,
           globalError: 'Ошибка входа: ${e.toString()}',
+          email: state.email,
+          password: state.password,
         ),
       );
     }
@@ -98,12 +97,7 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
     SignupSubmitted event,
     Emitter<LoginState> emit,
   ) async {
-    if (!state.isFormValid) {
-      emit(state.copyWith(status: LoginStatus.invalid));
-      return;
-    }
-
-    emit(state.copyWith(status: LoginStatus.loading));
+    emit(state.copyWith(status: LoginStatus.loading, globalError: null));
 
     try {
       final success = await _authService.signup(event.email, event.password);
@@ -115,6 +109,8 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
           state.copyWith(
             status: LoginStatus.error,
             globalError: 'Пользователь уже существует',
+            email: state.email,
+            password: state.password,
           ),
         );
       }
@@ -123,12 +119,31 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
         state.copyWith(
           status: LoginStatus.error,
           globalError: 'Ошибка регистрации: ${e.toString()}',
+          email: state.email,
+          password: state.password,
         ),
       );
     }
   }
 
   void _onToggleMode(ToggleAuthMode event, Emitter<LoginState> emit) {
-    emit(state.copyWith(isLoginMode: !state.isLoginMode, globalError: null));
+    emit(
+      state.copyWith(
+        isLoginMode: !state.isLoginMode,
+        globalError: null,
+        status: LoginStatus.initial,
+      ),
+    );
+  }
+
+  void _onResetError(ResetError event, Emitter<LoginState> emit) {
+    emit(state.copyWith(globalError: null, status: LoginStatus.initial));
+  }
+
+  @override
+  Future<void> close() {
+    _emailSubscription?.cancel();
+    _passwordSubscription?.cancel();
+    return super.close();
   }
 }

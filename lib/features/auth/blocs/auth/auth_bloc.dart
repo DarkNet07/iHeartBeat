@@ -10,23 +10,22 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
   AuthBloc({required AuthRepository authRepository})
     : _authRepository = authRepository,
-      super(AuthState.unauthenticated()) {
+      super(AuthState.loading()) {
     on<AppStarted>(_onAppStarted);
     on<LoggedIn>(_onLoggedIn);
     on<LoggedOut>(_onLoggedOut);
+    on<AdditionalAuthRequired>(_onAdditionalAuthRequired);
     on<AuthErrorOccurred>(_onAuthErrorOccurred);
   }
 
   Future<void> _onAppStarted(AppStarted event, Emitter<AuthState> emit) async {
-    emit(AuthState.loading());
-
     try {
       final isLoggedIn = await _authRepository.isAuthenticated();
 
       if (isLoggedIn) {
         final token = await _authRepository.getToken();
         if (token != null) {
-          emit(AuthState.authenticated(token: token));
+          emit(AuthState.tokenAvailable(token: token));
         } else {
           await _authRepository.logout();
           emit(AuthState.unauthenticated());
@@ -54,6 +53,15 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       emit(AuthState.unauthenticated());
     } catch (e) {
       emit(AuthState.error(message: 'Ошибка выхода: $e'));
+    }
+  }
+
+  Future<void> _onAdditionalAuthRequired(
+    AdditionalAuthRequired event,
+    Emitter<AuthState> emit,
+  ) async {
+    if (state.status == AuthStatus.tokenAvailable && state.token != null) {
+      emit(AuthState.authenticated(token: state.token!));
     }
   }
 

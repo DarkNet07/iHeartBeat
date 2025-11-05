@@ -21,10 +21,13 @@ class LoginState extends Equatable {
   final String? passwordError;
   final String? globalError;
   final bool isLoginMode;
-
   final String? token;
 
-  bool get isFormValid => emailError == null && passwordError == null;
+  bool get isFormValid =>
+      email.isNotEmpty &&
+      password.isNotEmpty &&
+      emailError == null &&
+      passwordError == null;
 
   @override
   List<Object?> get props => [
@@ -35,7 +38,6 @@ class LoginState extends Equatable {
     passwordError,
     globalError,
     isLoginMode,
-    isFormValid,
     token,
   ];
 

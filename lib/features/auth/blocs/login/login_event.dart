@@ -52,3 +52,7 @@ class SignupSubmitted extends LoginEvent {
 class ToggleAuthMode extends LoginEvent {
   const ToggleAuthMode();
 }
+
+class ResetError extends LoginEvent {
+  const ResetError();
+}

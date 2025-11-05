@@ -123,7 +123,6 @@ class BluetoothCubit extends Cubit<BluetoothState> {
     try {
       final device = state.scannedDevices.firstWhere((d) => d.id == deviceId);
 
-      debugPrint('Connecting to device: ${device.name}');
 
       await _stopScanningOnly();
       emit(
@@ -137,7 +136,6 @@ class BluetoothCubit extends Cubit<BluetoothState> {
 
       await _bluetoothService.connect(deviceId);
     } catch (e) {
-      debugPrint('Connection error: ${e.toString()}');
       emit(
         state.copyWith(
           status: BluetoothStatus.error,

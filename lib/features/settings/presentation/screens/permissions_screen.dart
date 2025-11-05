@@ -87,7 +87,11 @@ class _PermissionsStatusesState extends State<PermissionsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Проверки доступов bluetooth', maxLines: 2)),
+      appBar: AppBar(
+        title: Text('Доступы и настройки', maxLines: 2),
+        backgroundColor: Theme.of(context).colorScheme.primary,
+      ),
+
       body: SafeArea(
         child: Padding(
           padding: EdgeInsets.all(24),
@@ -101,17 +105,29 @@ class _PermissionsStatusesState extends State<PermissionsScreen> {
               SizedBox(height: 20),
               ElevatedButton(
                 onPressed: _checkAndRequestPermissions,
-                child: Text('Повторить запрос разрешений'),
+                child: Text('Запрос разрешений'),
               ),
+              SizedBox(height: 10),
               if (!_bluetoothGranted)
                 ElevatedButton(
                   onPressed: openAppSettings,
-                  child: Text('Открыть настройки приложения'),
+                  child: Text('Настройки приложения'),
                 ),
+              SizedBox(height: 10),
+              ElevatedButton(
+                onPressed: () => _navigateToEntranceSettings(context),
+                child: Text('Биометрия и вход'),
+              ),
             ],
           ),
         ),
       ),
     );
+  }
+
+  void _navigateToEntranceSettings(BuildContext context) {
+    if (mounted) {
+      Navigator.pushNamed(context, '/setup_security');
+    }
   }
 }

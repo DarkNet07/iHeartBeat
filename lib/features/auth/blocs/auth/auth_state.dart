@@ -1,6 +1,12 @@
 part of 'auth_bloc.dart';
 
-enum AuthStatus { unauthenticated, loading, authenticated, error }
+enum AuthStatus {
+  unauthenticated,
+  loading,
+  authenticated,
+  tokenAvailable,
+  error,
+}
 
 class AuthState extends Equatable {
   const AuthState({required this.status, this.token, this.errorMessage});
@@ -16,6 +22,9 @@ class AuthState extends Equatable {
 
   factory AuthState.authenticated({required String token}) =>
       AuthState(status: AuthStatus.authenticated, token: token);
+
+  factory AuthState.tokenAvailable({required String token}) =>
+      AuthState(status: AuthStatus.tokenAvailable, token: token);
 
   factory AuthState.error({required String message}) =>
       AuthState(status: AuthStatus.error, errorMessage: message);
